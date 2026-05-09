@@ -29,4 +29,6 @@ public static class GameConstants
     public static readonly Color TILE_LOCKED_COLOR = new(0.4f, 0.4f, 0.4f, 1f);
 
     public const int COMBO_MAX_SIZE = 5;
+
+    public const int MATCHING_COUNT = 3;
 }

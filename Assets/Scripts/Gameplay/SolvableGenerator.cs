@@ -26,8 +26,8 @@ public class SolvableGenerator
 {
     public IReadOnlyList<GeneratedTile> Generate(LevelData levelData)
     {
-        if (levelData.LayoutCoordinates.Count % 3 != 0)
-            throw new ArgumentException("Total tiles must be a multiple of 3.");
+        if (levelData.LayoutCoordinates.Count % GameConstants.MATCHING_COUNT != 0)
+            throw new ArgumentException($"Total tiles must be a multiple of {GameConstants.MATCHING_COUNT}.");
 
         for (int attempt = 0; attempt < GameConstants.GENERATOR_MAX_ATTEMPTS; attempt++)
         {
@@ -89,7 +89,7 @@ public class SolvableGenerator
         {
             var selectedGroup = new List<VirtualTile>();
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < GameConstants.MATCHING_COUNT; i++)
             {
                 var available = unassigned.Where(t => t.BlockedBy.Count == 0).ToList();
                 if (available.Count == 0) return false; 

@@ -1697,7 +1697,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1474477799
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2083,7 +2083,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2088690726}
-  - component: {fileID: 2088690725}
+  - component: {fileID: 2088690727}
   m_Layer: 0
   m_Name: HomeManager
   m_TagString: Untagged
@@ -2091,28 +2091,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2088690725
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2088690724}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eacdf847442a48b44a0979254e1b1fab, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HomeController
-  _playButton: {fileID: 1474198133}
-  _playButtonText: {fileID: 159802243}
-  _mainGameIcon: {fileID: 896820653}
-  _selectLevelButton: {fileID: 281385215}
-  _transitionImage: {fileID: 1474477800}
-  _transitionDuration: 0.5
-  _animDuration: 0.4
-  _levelButtonPrefab: {fileID: 3462841028079631084, guid: 88bcbcab01d5d7346bd3d93b89024ccf, type: 3}
-  _levelGridContainer: {fileID: 1835261902}
-  _levelScrollView: {fileID: 2015021356}
 --- !u!4 &2088690726
 Transform:
   m_ObjectHideFlags: 0
@@ -2128,6 +2106,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2088690727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2088690724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d81a3023cba0e75439ba8b4f2095d953, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HomeController
+  _playButton: {fileID: 1474198133}
+  _playButtonText: {fileID: 159802243}
+  _mainGameIcon: {fileID: 896820653}
+  _selectLevelButton: {fileID: 281385215}
+  _transitionImage: {fileID: 1474477800}
+  _transitionDuration: 0.5
+  _animDuration: 0.4
+  _levelButtonPrefab: {fileID: 3462841028079631084, guid: 88bcbcab01d5d7346bd3d93b89024ccf, type: 3}
+  _levelGridContainer: {fileID: 1835261902}
+  _levelScrollView: {fileID: 2015021356}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
