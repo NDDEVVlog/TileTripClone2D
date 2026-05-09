@@ -26,4 +26,6 @@ public static class GameConstants
     public const float ANIMATION_DURATION_COLOR = 0.5f;
 
     public static readonly Color TILE_LOCKED_COLOR = new(0.4f, 0.4f, 0.4f, 1f);
+
+    public const int COMBO_MAX_SIZE = 5;
 }

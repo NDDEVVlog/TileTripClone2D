@@ -13,7 +13,6 @@ public struct GeneratedTile
 
 public class VirtualTile
 {
-    // Đã thay đổi từ 'init' sang 'set' để sửa lỗi CS0518
     public Vector2 Position { get; set; }
     public int Layer { get; set; }
     public float Size { get; set; }
@@ -28,7 +27,7 @@ public class SolvableGenerator
     public IReadOnlyList<GeneratedTile> Generate(LevelData levelData)
     {
         if (levelData.LayoutCoordinates.Count % 3 != 0)
-            throw new ArgumentException("Total tiles must be a multiple of 3");
+            throw new ArgumentException("Total tiles must be a multiple of 3. Please check your Level Editor.");
 
         for (int attempt = 0; attempt < GameConstants.GENERATOR_MAX_ATTEMPTS; attempt++)
         {
@@ -40,6 +39,10 @@ public class SolvableGenerator
 
             if (TryAssignIds(virtualTiles, levelData.AllowedIconIds))
             {
+                // Xáo trộn vị trí của toàn bộ map một lần cuối cùng
+                // Để tránh tình trạng người chơi thuộc lòng mẫu "3 viên xuất hiện theo cụm"
+                ShuffleTilePositions(virtualTiles);
+
                 return virtualTiles.Select(v => new GeneratedTile
                 {
                     Position = v.Position,
@@ -49,7 +52,7 @@ public class SolvableGenerator
             }
         }
 
-        throw new Exception("Failed to generate a solvable board.");
+        throw new Exception("Failed to generate a solvable board. The layout might be too narrow causing an inevitable deadlock.");
     }
 
     private void BuildVirtualGraph(List<VirtualTile> tiles)
@@ -81,27 +84,74 @@ public class SolvableGenerator
     private bool TryAssignIds(List<VirtualTile> tiles, IReadOnlyList<string> allowedIds)
     {
         var unassigned = new List<VirtualTile>(tiles);
+        
+        // Thuật toán "Túi bốc thăm": Đảm bảo phân bổ ID đồng đều
+        var idBag = new List<string>(allowedIds);
+        ShuffleList(idBag);
+        int bagIndex = 0;
 
         while (unassigned.Count > 0)
         {
-            var available = unassigned.Where(t => t.BlockedBy.Count == 0).ToList();
-            if (available.Count < 3) return false; 
+            var selectedGroup = new List<VirtualTile>();
 
-            var selectedGroup = available.OrderBy(_ => Random.value).Take(3).ToList();
-            string selectedId = allowedIds[Random.Range(0, allowedIds.Count)];
+            for (int i = 0; i < 3; i++)
+            {
+                var available = unassigned.Where(t => t.BlockedBy.Count == 0).ToList();
+                if (available.Count == 0) return false; 
+
+                var pickedTile = available[Random.Range(0, available.Count)];
+                selectedGroup.Add(pickedTile);
+                unassigned.Remove(pickedTile);
+
+                foreach (var blocked in pickedTile.Blocking)
+                {
+                    blocked.BlockedBy.Remove(pickedTile);
+                }
+            }
+
+            string selectedId = idBag[bagIndex];
+            bagIndex++;
+
+            if (bagIndex >= idBag.Count)
+            {
+                bagIndex = 0;
+                ShuffleList(idBag);
+            }
 
             foreach (var tile in selectedGroup)
             {
                 tile.AssignedId = selectedId;
-                unassigned.Remove(tile);
-
-                foreach (var blocked in tile.Blocking)
-                {
-                    blocked.BlockedBy.Remove(tile);
-                }
             }
         }
+
         return true;
+    }
+
+    private void ShuffleList<T>(List<T> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int swapIndex = Random.Range(0, i + 1);
+            (list[i], list[swapIndex]) = (list[swapIndex], list[i]);
+        }
+    }
+
+    private void ShuffleTilePositions(List<VirtualTile> tiles)
+    {
+        var groupedByState = tiles.GroupBy(t => t.BlockedBy.Count).ToList();
+        
+        foreach (var group in groupedByState)
+        {
+            var idList = group.Select(t => t.AssignedId).ToList();
+            ShuffleList(idList);
+
+            int index = 0;
+            foreach (var tile in group)
+            {
+                tile.AssignedId = idList[index];
+                index++;
+            }
+        }
     }
 
     private bool IsOverlapping(VirtualTile a, VirtualTile b)

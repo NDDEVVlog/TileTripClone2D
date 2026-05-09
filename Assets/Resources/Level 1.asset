@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f7df5910e67b9cc428052e7d5faecc5f, type: 3}
-  m_Name: Level2
+  m_Name: Level 1
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   RackCapacity: 7
   LayoutCoordinates:
@@ -38,3 +38,8 @@ MonoBehaviour:
   - 3
   - 4
   - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10

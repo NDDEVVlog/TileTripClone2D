@@ -5,9 +5,13 @@ using UnityEngine;
 using Cysharp.Threading.Tasks;
 
 public class TrayController : MonoBehaviour
-{
+{   
+    [SerializeField] private Sprite baseGridSprite;
+    [SerializeField] private int iconSize;
+
     [SerializeField] private Transform _startPoint;
     [SerializeField] private float _spacing = 1.2f;
+    
 
     public event Action OnDefeat;
     public event Action OnMatched;

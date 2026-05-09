@@ -9,6 +9,7 @@ public class GameplayController : MonoBehaviour
 {
     [SerializeField] private ObjectPool _pool;
     [SerializeField] private TrayController _trayController;
+    [SerializeField] private ComboManager _comboManager;
     [SerializeField] private Transform _boardContainer;
     [SerializeField] private Sprite[] _iconSprites;
     [Space]
@@ -145,6 +146,7 @@ public class GameplayController : MonoBehaviour
         if (_trayController.TryAdd(tile))
         {
             AudioService.Instance?.PlaySFX(_tapSfx);
+            _comboManager?.HandleTap(tile.Id);
             _activeTiles.Remove(tile);
             tile.DetachForTray();
 
@@ -155,6 +157,7 @@ public class GameplayController : MonoBehaviour
     private void HandleMatch()
     {
         AudioService.Instance?.PlaySFX(_matchSfx);
+        _comboManager?.HandleMatch();
     }
 
     private void HandleVictory()
