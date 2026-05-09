@@ -129,4 +129,12 @@ public class TrayController : MonoBehaviour
             OnMatched?.Invoke();
         }
     }
+
+    public void ClearTray()
+    {
+        foreach (var tile in _tiles.Where(t => t != null))
+        {
+            tile.ExecuteMergeAnimationAsync().Forget();
+        }
+    }
 }

@@ -22,23 +22,32 @@ public class HomeController : MonoBehaviour
     [Header("Dynamic Level Selector")]
     [SerializeField] private GameObject _levelButtonPrefab;
     [SerializeField] private RectTransform _levelGridContainer;
+    [SerializeField] private RectTransform _levelScrollView;
 
     private static bool _isFirstLoad = true;
     private readonly List<RectTransform> _spawnedLevelButtons = new();
+    
     private bool _isTransitioning;
+    private bool _isLevelTableShowing;
 
     private void Start()
     {
-        if (ProgressService.Database == null)
-        {
-            var db = Resources.Load<LevelDatabase>(GameConstants.DB_RESOURCE_PATH);
-            ProgressService.Initialize(db);
-        }
-
+        InitializeDatabase();
         SetupMainPlayButton();
+        SetupSelectLevelButton();
         SetupDynamicLevelSelector();
 
+        _levelScrollView.localScale = Vector3.zero;
+        _levelScrollView.gameObject.SetActive(false);
+
         ExecuteEnterAnimationsAsync().Forget();
+    }
+
+    private void InitializeDatabase()
+    {
+        if (ProgressService.Database != null) return;
+        var db = Resources.Load<LevelDatabase>(GameConstants.DB_RESOURCE_PATH);
+        ProgressService.Initialize(db);
     }
 
     private void SetupMainPlayButton()
@@ -59,6 +68,12 @@ public class HomeController : MonoBehaviour
         }
         
         _playButton.onClick.AddListener(() => ExecuteExitAndLoadGameplayAsync(targetLevelIndex).Forget());
+    }
+
+    private void SetupSelectLevelButton()
+    {
+        if (_selectLevelButton == null) return;
+        _selectLevelButton.onClick.AddListener(() => ToggleLevelTableAsync().Forget());
     }
 
     private void SetupDynamicLevelSelector()
@@ -87,8 +102,77 @@ public class HomeController : MonoBehaviour
                 btn.onClick.AddListener(() => ExecuteExitAndLoadGameplayAsync(levelIndex).Forget());
             }
 
-            _spawnedLevelButtons.Add(btnObj.GetComponent<RectTransform>());
+            RectTransform btnRect = btnObj.GetComponent<RectTransform>();
+            btnRect.localScale = Vector3.zero;
+            _spawnedLevelButtons.Add(btnRect);
         }
+    }
+
+    private async UniTaskVoid ToggleLevelTableAsync()
+    {
+        if (_isTransitioning) return;
+        _isTransitioning = true;
+        ToggleUIInteractability(false);
+
+        _isLevelTableShowing = !_isLevelTableShowing;
+
+        if (_isLevelTableShowing)
+        {
+            await ShowLevelTableAsync();
+        }
+        else
+        {
+            await HideLevelTableAsync();
+        }
+
+        ToggleUIInteractability(true);
+        _isTransitioning = false;
+    }
+
+    private async UniTask ShowLevelTableAsync()
+    {
+        _levelScrollView.gameObject.SetActive(true);
+        
+        await _levelScrollView.DOScale(1f, _animDuration)
+            .SetEase(Ease.OutBack)
+            .SetLink(_levelScrollView.gameObject)
+            .AsyncWaitForCompletion();
+
+        var cascadeTasks = new List<UniTask>();
+        for (int i = 0; i < _spawnedLevelButtons.Count; i++)
+        {
+            var task = _spawnedLevelButtons[i].DOScale(1f, 0.3f)
+                .SetEase(Ease.OutBack)
+                .SetDelay(i * 0.03f)
+                .SetLink(_spawnedLevelButtons[i].gameObject)
+                .AsyncWaitForCompletion().AsUniTask();
+            cascadeTasks.Add(task);
+        }
+
+        await UniTask.WhenAll(cascadeTasks);
+    }
+
+    private async UniTask HideLevelTableAsync()
+    {
+        var cascadeTasks = new List<UniTask>();
+        for (int i = _spawnedLevelButtons.Count - 1; i >= 0; i--)
+        {
+            var task = _spawnedLevelButtons[i].DOScale(0f, 0.2f)
+                .SetEase(Ease.InBack)
+                .SetDelay((_spawnedLevelButtons.Count - 1 - i) * 0.02f)
+                .SetLink(_spawnedLevelButtons[i].gameObject)
+                .AsyncWaitForCompletion().AsUniTask();
+            cascadeTasks.Add(task);
+        }
+
+        await UniTask.WhenAll(cascadeTasks);
+
+        await _levelScrollView.DOScale(0f, _animDuration)
+            .SetEase(Ease.InBack)
+            .SetLink(_levelScrollView.gameObject)
+            .AsyncWaitForCompletion();
+
+        _levelScrollView.gameObject.SetActive(false);
     }
 
     private async UniTaskVoid ExecuteEnterAnimationsAsync()
@@ -99,7 +183,6 @@ public class HomeController : MonoBehaviour
         if (_isFirstLoad)
         {
             _isFirstLoad = false;
-            
             _transitionImage.gameObject.SetActive(true);
             _transitionImage.color = new Color(0, 0, 0, 1f);
             
@@ -113,33 +196,25 @@ public class HomeController : MonoBehaviour
         else
         {
             _transitionImage.gameObject.SetActive(false);
-            
             _mainGameIcon.localScale = Vector3.zero;
             _playButton.GetComponent<RectTransform>().localScale = Vector3.zero;
-            if (_selectLevelButton != null) _selectLevelButton.GetComponent<RectTransform>().localScale = Vector3.zero;
-
-            foreach (var btn in _spawnedLevelButtons) btn.localScale = Vector3.zero;
-
-            _mainGameIcon.DOScale(1f, _animDuration).SetEase(Ease.OutBack).SetLink(gameObject);
             
+            if (_selectLevelButton != null) 
+                _selectLevelButton.GetComponent<RectTransform>().localScale = Vector3.zero;
+
+            var tasks = new List<UniTask>
+            {
+                _mainGameIcon.DOScale(1f, _animDuration).SetEase(Ease.OutBack).SetLink(gameObject).AsyncWaitForCompletion().AsUniTask(),
+                _playButton.GetComponent<RectTransform>().DOScale(1f, _animDuration).SetEase(Ease.OutBack).SetDelay(0.15f).SetLink(gameObject).AsyncWaitForCompletion().AsUniTask()
+            };
+
             if (_selectLevelButton != null)
             {
-                _selectLevelButton.GetComponent<RectTransform>().DOScale(1f, _animDuration)
-                    .SetEase(Ease.OutBack).SetDelay(0.1f).SetLink(gameObject);
+                tasks.Add(_selectLevelButton.GetComponent<RectTransform>().DOScale(1f, _animDuration)
+                    .SetEase(Ease.OutBack).SetDelay(0.1f).SetLink(gameObject).AsyncWaitForCompletion().AsUniTask());
             }
 
-            _playButton.GetComponent<RectTransform>().DOScale(1f, _animDuration)
-                .SetEase(Ease.OutBack).SetDelay(0.15f).SetLink(gameObject);
-
-            for (int i = 0; i < _spawnedLevelButtons.Count; i++)
-            {
-                _spawnedLevelButtons[i].DOScale(1f, 0.3f)
-                    .SetEase(Ease.OutBack)
-                    .SetDelay(0.2f + (i * 0.05f))
-                    .SetLink(_spawnedLevelButtons[i].gameObject);
-            }
-
-            await UniTask.Delay(System.TimeSpan.FromSeconds(0.2f + (_spawnedLevelButtons.Count * 0.05f) + 0.3f));
+            await UniTask.WhenAll(tasks);
         }
 
         ToggleUIInteractability(true);
@@ -152,25 +227,19 @@ public class HomeController : MonoBehaviour
         _isTransitioning = true;
         ToggleUIInteractability(false);
 
-        var tasks = new List<UniTask>
+        var tasks = new List<UniTask>();
+
+        if (_isLevelTableShowing)
         {
-            _mainGameIcon.DOScale(0f, _animDuration).SetEase(Ease.InBack).SetLink(gameObject).AsyncWaitForCompletion().AsUniTask(),
-            _playButton.GetComponent<RectTransform>().DOScale(0f, _animDuration).SetEase(Ease.InBack).SetLink(gameObject).AsyncWaitForCompletion().AsUniTask()
-        };
+            tasks.Add(HideLevelTableAsync());
+        }
+
+        tasks.Add(_mainGameIcon.DOScale(0f, _animDuration).SetEase(Ease.InBack).SetLink(gameObject).AsyncWaitForCompletion().AsUniTask());
+        tasks.Add(_playButton.GetComponent<RectTransform>().DOScale(0f, _animDuration).SetEase(Ease.InBack).SetLink(gameObject).AsyncWaitForCompletion().AsUniTask());
 
         if (_selectLevelButton != null)
         {
             tasks.Add(_selectLevelButton.GetComponent<RectTransform>().DOScale(0f, _animDuration).SetEase(Ease.InBack).SetLink(gameObject).AsyncWaitForCompletion().AsUniTask());
-        }
-
-        for (int i = 0; i < _spawnedLevelButtons.Count; i++)
-        {
-            var task = _spawnedLevelButtons[i].DOScale(0f, 0.2f)
-                .SetEase(Ease.InBack)
-                .SetDelay(i * 0.03f)
-                .SetLink(_spawnedLevelButtons[i].gameObject)
-                .AsyncWaitForCompletion().AsUniTask();
-            tasks.Add(task);
         }
 
         await UniTask.WhenAll(tasks);

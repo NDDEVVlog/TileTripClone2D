@@ -107,6 +107,8 @@ public class GameplayController : MonoBehaviour
     {
         await _uiManager.HideAllPanelsAsync();
         await ClearBoardAsync();
+        _trayController.ClearTray();
+
         await _trayController.DespawnGridAsync();
         InitializeGameSequenceAsync().Forget();
     }

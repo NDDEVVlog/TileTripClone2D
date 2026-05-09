@@ -507,6 +507,7 @@ GameObject:
   - component: {fileID: 414684359}
   - component: {fileID: 414684358}
   - component: {fileID: 414684357}
+  - component: {fileID: 414684360}
   m_Layer: 5
   m_Name: ReturnButton
   m_TagString: Untagged
@@ -531,7 +532,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -227, y: -73.000015}
+  m_AnchoredPosition: {x: -227, y: -52.410023}
   m_SizeDelta: {x: 75, y: 75}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &414684357
@@ -578,6 +579,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
+      - m_Target: {fileID: 414684360}
+        m_TargetAssemblyTypeName: ReturnButtonAnimation, Assembly-CSharp
+        m_MethodName: PopDownAnimation
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
       - m_Target: {fileID: 1353335020}
         m_TargetAssemblyTypeName: GameplayController, Assembly-CSharp
         m_MethodName: HandleExitToHome
@@ -628,6 +641,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 414684355}
   m_CullTransparentMesh: 1
+--- !u!114 &414684360
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 414684355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79290f65cab95c24aa209d33e20085e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ReturnButtonAnimation
+  _buttonRect: {fileID: 414684356}
+  _animationDuration: 0.3
+  _targetScale: {x: 1.2, y: 1.2, z: 1.2}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -1038,8 +1066,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 579}
-  m_SizeDelta: {x: 603.53, y: 145.63}
+  m_AnchoredPosition: {x: 0, y: 565.7}
+  m_SizeDelta: {x: 603.53, y: 104.82}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &718439650
 GameObject:
@@ -1485,8 +1513,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.40999985, y: -1.3499985}
-  m_SizeDelta: {x: 579.47, y: 1257.74}
+  m_AnchoredPosition: {x: 0.40999985, y: -7.3100014}
+  m_SizeDelta: {x: 636.67, y: 1245.82}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1123641225
 MonoBehaviour:
@@ -1560,8 +1588,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.40999985, y: -1.3499985}
-  m_SizeDelta: {x: 579.47, y: 1257.74}
+  m_AnchoredPosition: {x: -1.9700012, y: -3.7299995}
+  m_SizeDelta: {x: 660.5, y: 1252.97}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1206940608
 MonoBehaviour:
