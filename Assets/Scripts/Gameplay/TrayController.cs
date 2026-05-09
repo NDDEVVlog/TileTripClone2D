@@ -26,7 +26,6 @@ public class TrayController : MonoBehaviour
         _capacity = capacity;
         _tiles.Clear();
         _isProcessingMatch = false;
-        
         ClearGridSlots();
     }
 
@@ -43,19 +42,14 @@ public class TrayController : MonoBehaviour
             GameObject slotObj = Instantiate(_gridSlotPrefab, startPos, Quaternion.identity, _startPoint);
             slotObj.name = $"GridSlot_{i}";
 
-            if (!slotObj.TryGetComponent<SpriteRenderer>(out var sr))
-            {
-                sr = slotObj.AddComponent<SpriteRenderer>();
-            }
+            if (!slotObj.TryGetComponent<SpriteRenderer>(out var sr)) sr = slotObj.AddComponent<SpriteRenderer>();
             
             Color color = sr.color;
             color.a = 0;
             sr.color = color;
-
             _gridSlots.Add(sr);
 
-            float delay = i * 0.05f;
-            tasks.Add(AnimateSlotSpawnAsync(slotObj.transform, sr, targetPos, delay));
+            tasks.Add(AnimateSlotSpawnAsync(slotObj.transform, sr, targetPos, i * 0.05f));
         }
 
         await UniTask.WhenAll(tasks);
@@ -63,14 +57,7 @@ public class TrayController : MonoBehaviour
 
     public async UniTask DespawnGridAsync()
     {
-        var tasks = new List<UniTask>();
-
-        for (int i = 0; i < _gridSlots.Count; i++)
-        {
-            float delay = i * 0.05f;
-            tasks.Add(AnimateSlotDespawnAsync(_gridSlots[i], delay));
-        }
-
+        var tasks = _gridSlots.Select((sr, i) => AnimateSlotDespawnAsync(sr, i * 0.05f));
         await UniTask.WhenAll(tasks);
         ClearGridSlots();
     }
@@ -78,33 +65,25 @@ public class TrayController : MonoBehaviour
     private async UniTask AnimateSlotSpawnAsync(Transform t, SpriteRenderer sr, Vector2 targetPos, float delay)
     {
         await UniTask.Delay(TimeSpan.FromSeconds(delay));
-        
         var sequence = DOTween.Sequence();
         sequence.Join(t.DOMove(targetPos, _animationDuration).SetEase(Ease.OutBack));
         sequence.Join(sr.DOFade(1f, _animationDuration));
-        
         await sequence.AsyncWaitForCompletion();
     }
 
     private async UniTask AnimateSlotDespawnAsync(SpriteRenderer sr, float delay)
     {
         await UniTask.Delay(TimeSpan.FromSeconds(delay));
-        
         Vector2 targetPos = (Vector2)sr.transform.position + Vector2.up * _animationOffset;
         var sequence = DOTween.Sequence();
-        
         sequence.Join(sr.transform.DOMove(targetPos, _animationDuration).SetEase(Ease.InBack));
         sequence.Join(sr.DOFade(0f, _animationDuration));
-        
         await sequence.AsyncWaitForCompletion();
     }
 
     private void ClearGridSlots()
     {
-        foreach (var slot in _gridSlots)
-        {
-            if (slot != null) Destroy(slot.gameObject);
-        }
+        foreach (var slot in _gridSlots.Where(s => s != null)) Destroy(slot.gameObject);
         _gridSlots.Clear();
     }
 
@@ -112,38 +91,21 @@ public class TrayController : MonoBehaviour
     {
         if (_tiles.Count >= _capacity || _isProcessingMatch) return false;
 
-        InsertGrouped(tile);
+        int index = _tiles.FindLastIndex(t => t.Id == tile.Id);
+        if (index >= 0) _tiles.Insert(index + 1, tile);
+        else _tiles.Add(tile);
         
         var moveTasks = RepositionAsync();
         ProcessMatchesAsync(tile.Id, moveTasks).Forget();
 
-        if (_tiles.Count >= _capacity && !HasPendingMatch(tile.Id)) 
-        {
-            OnDefeat?.Invoke();
-        }
-
+        if (_tiles.Count >= _capacity && !HasPendingMatch(tile.Id)) OnDefeat?.Invoke();
         return true;
-    }
-
-    private void InsertGrouped(TileView tile)
-    {
-        int index = _tiles.FindLastIndex(t => t.Id == tile.Id);
-        if (index >= 0) _tiles.Insert(index + 1, tile);
-        else _tiles.Add(tile);
     }
 
     private List<UniTask> RepositionAsync()
     {
-        var tasks = new List<UniTask>();
         Vector2 start = _startPoint.position;
-        
-        for (int i = 0; i < _tiles.Count; i++)
-        {
-            Vector2 targetPos = start + new Vector2(i * _spacing, 0);
-            tasks.Add(_tiles[i].MoveToTrayAsync(targetPos));
-        }
-        
-        return tasks;
+        return _tiles.Select((t, i) => t.MoveToTrayAsync(start + new Vector2(i * _spacing, 0))).ToList();
     }
 
     private bool HasPendingMatch(string targetId) => _tiles.Count(t => t.Id == targetId) >= 3;
@@ -161,7 +123,6 @@ public class TrayController : MonoBehaviour
 
             var mergeTasks = matched.Select(t => t.ExecuteMergeAnimationAsync());
             await UniTask.WhenAll(mergeTasks);
-            
             await UniTask.WhenAll(RepositionAsync());
             
             _isProcessingMatch = false;

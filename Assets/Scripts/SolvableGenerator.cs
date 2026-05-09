@@ -27,7 +27,7 @@ public class SolvableGenerator
     public IReadOnlyList<GeneratedTile> Generate(LevelData levelData)
     {
         if (levelData.LayoutCoordinates.Count % 3 != 0)
-            throw new ArgumentException("Total tiles must be a multiple of 3. Please check your Level Editor.");
+            throw new ArgumentException("Total tiles must be a multiple of 3.");
 
         for (int attempt = 0; attempt < GameConstants.GENERATOR_MAX_ATTEMPTS; attempt++)
         {
@@ -39,10 +39,7 @@ public class SolvableGenerator
 
             if (TryAssignIds(virtualTiles, levelData.AllowedIconIds))
             {
-                // Xáo trộn vị trí của toàn bộ map một lần cuối cùng
-                // Để tránh tình trạng người chơi thuộc lòng mẫu "3 viên xuất hiện theo cụm"
                 ShuffleTilePositions(virtualTiles);
-
                 return virtualTiles.Select(v => new GeneratedTile
                 {
                     Position = v.Position,
@@ -52,7 +49,7 @@ public class SolvableGenerator
             }
         }
 
-        throw new Exception("Failed to generate a solvable board. The layout might be too narrow causing an inevitable deadlock.");
+        throw new Exception("Failed to generate a solvable board.");
     }
 
     private void BuildVirtualGraph(List<VirtualTile> tiles)
@@ -84,8 +81,6 @@ public class SolvableGenerator
     private bool TryAssignIds(List<VirtualTile> tiles, IReadOnlyList<string> allowedIds)
     {
         var unassigned = new List<VirtualTile>(tiles);
-        
-        // Thuật toán "Túi bốc thăm": Đảm bảo phân bổ ID đồng đều
         var idBag = new List<string>(allowedIds);
         ShuffleList(idBag);
         int bagIndex = 0;
@@ -103,10 +98,7 @@ public class SolvableGenerator
                 selectedGroup.Add(pickedTile);
                 unassigned.Remove(pickedTile);
 
-                foreach (var blocked in pickedTile.Blocking)
-                {
-                    blocked.BlockedBy.Remove(pickedTile);
-                }
+                foreach (var blocked in pickedTile.Blocking) blocked.BlockedBy.Remove(pickedTile);
             }
 
             string selectedId = idBag[bagIndex];
@@ -118,10 +110,7 @@ public class SolvableGenerator
                 ShuffleList(idBag);
             }
 
-            foreach (var tile in selectedGroup)
-            {
-                tile.AssignedId = selectedId;
-            }
+            foreach (var tile in selectedGroup) tile.AssignedId = selectedId;
         }
 
         return true;

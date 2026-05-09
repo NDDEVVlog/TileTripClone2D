@@ -8,6 +8,7 @@ public static class GameConstants
     
     public const string DB_RESOURCE_PATH = "LevelDatabase";
     public const string POOL_KEY_TILE = "Tile";
+    public const string POOL_KEY_MATCH_EFFECT = "MatchEffect";
 
     public const string PREFS_UNLOCKED_LEVEL = "UnlockedLevel";
 

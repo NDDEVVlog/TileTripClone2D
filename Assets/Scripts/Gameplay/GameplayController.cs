@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
 using Cysharp.Threading.Tasks;
 using UnityEngine.SceneManagement;
+using System.Linq;
 
 public class GameplayController : MonoBehaviour
 {
@@ -21,10 +21,12 @@ public class GameplayController : MonoBehaviour
 
     private LevelData _currentLevelData;
     private readonly HashSet<TileView> _activeTiles = new();
+    private BoardFactory _boardFactory;
     private bool _isGameActive;
 
     private void Start()
     {
+        _boardFactory = new BoardFactory(_pool, _boardContainer, _iconSprites, _activeTiles);
         BindEvents();
         InitializeGameSequenceAsync().Forget();
     }
@@ -33,7 +35,6 @@ public class GameplayController : MonoBehaviour
     {
         _trayController.OnDefeat += HandleDefeat;
         _trayController.OnMatched += HandleMatch;
-
         _uiManager.OnRetryClicked += HandleRetry;
         _uiManager.OnHomeClicked += HandleReturnHome;
         _uiManager.OnNextLevelClicked += HandleNextLevel;
@@ -52,70 +53,8 @@ public class GameplayController : MonoBehaviour
         _trayController.Initialize(_currentLevelData.RackCapacity);
 
         await _trayController.SpawnGridAsync();
-        await GenerateBoardAsync();
-    }
-
-    private async UniTask GenerateBoardAsync()
-    {
-        var generator = new SolvableGenerator();
-        var tilesData = generator.Generate(_currentLevelData);
-        var instances = new List<TileView>();
-
-        var groupedByLayer = tilesData.GroupBy(t => t.Layer).OrderBy(g => g.Key).ToList();
-
-        foreach (var layerGroup in groupedByLayer)
-        {
-            var spawnTasks = new List<UniTask>();
-
-            foreach (var data in layerGroup)
-            {
-                var tile = _pool.Get<TileView>(GameConstants.POOL_KEY_TILE);
-                tile.transform.SetPositionAndRotation(data.Position, Quaternion.identity);
-                tile.transform.SetParent(_boardContainer);
-
-                var sprite = _iconSprites.First(s => s.name == data.Id);
-                
-                tile.Setup(data.Id, data.Layer, sprite, t => _pool.Return(t.gameObject));
-                tile.OnClicked += HandleTileClick;
-                
-                instances.Add(tile);
-                _activeTiles.Add(tile);
-                
-                spawnTasks.Add(tile.SpawnPopupAnimationAsync());
-            }
-
-            await UniTask.WhenAll(spawnTasks);
-            await UniTask.Delay(100);
-        }
-
-        BuildDependencies(instances);
+        await _boardFactory.GenerateBoardAsync(_currentLevelData, HandleTileClick);
         _isGameActive = true;
-    }
-
-    private void BuildDependencies(IReadOnlyList<TileView> tiles)
-    {
-        int count = tiles.Count;
-        for (int i = 0; i < count; i++)
-        {
-            for (int j = i + 1; j < count; j++)
-            {
-                var a = tiles[i];
-                var b = tiles[j];
-
-                if (a.Layer == b.Layer || !IsOverlapping(a, b)) continue;
-
-                if (a.Layer < b.Layer) a.AddBlocker(b);
-                else b.AddBlocker(a);
-            }
-        }
-    }
-
-    private bool IsOverlapping(TileView a, TileView b)
-    {
-        return a.transform.position.x < b.transform.position.x + b.Size &&
-               a.transform.position.x + a.Size > b.transform.position.x &&
-               a.transform.position.y < b.transform.position.y + b.Size &&
-               a.transform.position.y + a.Size > b.transform.position.y;
     }
 
     private void HandleTileClick(TileView tile)
@@ -130,10 +69,7 @@ public class GameplayController : MonoBehaviour
             _activeTiles.Remove(tile);
             tile.DetachForTray();
 
-            if (_activeTiles.Count == 0) 
-            {
-                HandleVictory();
-            }
+            if (_activeTiles.Count == 0) HandleVictory();
         }
     }
 
@@ -147,49 +83,35 @@ public class GameplayController : MonoBehaviour
     {
         _isGameActive = false;
         //AudioService.Instance?.PlaySFX(_winSfx);
-        
         ProgressService.UnlockNextLevel();
-        bool hasNext = ProgressService.HasNextLevel();
-        
-        ShowEndGamePanelAsync(true, hasNext).Forget();
+        ShowEndGamePanelAsync(true, ProgressService.HasNextLevel()).Forget();
     }
 
     private void HandleDefeat()
     {
         _isGameActive = false;
         //AudioService.Instance?.PlaySFX(_loseSfx);
-        
         ShowEndGamePanelAsync(false).Forget();
     }
 
     private async UniTaskVoid ShowEndGamePanelAsync(bool isVictory, bool hasNext = false)
     {
         await UniTask.Delay(1000); 
-
-        if (isVictory)
-            await _uiManager.ShowWinPanelAsync(hasNext);
-        else
-            await _uiManager.ShowLosePanelAsync();
+        if (isVictory) await _uiManager.ShowWinPanelAsync(hasNext);
+        else await _uiManager.ShowLosePanelAsync();
     }
 
-    private void HandleRetry()
-    {
-        ResetGameSequenceAsync().Forget();
-    }
+    private void HandleRetry() => ResetGameSequenceAsync().Forget();
 
     private async UniTaskVoid ResetGameSequenceAsync()
     {
         await _uiManager.HideAllPanelsAsync();
         await ClearBoardAsync();
         await _trayController.DespawnGridAsync();
-        
         InitializeGameSequenceAsync().Forget();
     }
 
-    private void HandleReturnHome()
-    {
-        ReturnHomeSequenceAsync().Forget();
-    }
+    private void HandleReturnHome() => ReturnHomeSequenceAsync().Forget();
 
     private void HandleNextLevel()
     {
@@ -198,32 +120,26 @@ public class GameplayController : MonoBehaviour
             ProgressService.MoveToNextLevel();
             ResetGameSequenceAsync().Forget();
         }
-        else
-        {
-            ReturnHomeSequenceAsync().Forget();
-        }
+        else ReturnHomeSequenceAsync().Forget();
     }
 
+    public void HandleExitToHome() => ReturnHomeSequenceAsync().Forget();
     private async UniTaskVoid ReturnHomeSequenceAsync()
     {
         _isGameActive = false;
         await _uiManager.HideAllPanelsAsync();
         await ClearBoardAsync();
         await _trayController.DespawnGridAsync();
-        
         SceneManager.LoadScene(GameConstants.SCENE_HOME);
     }
 
     private async UniTask ClearBoardAsync()
     {
-        var despawnTasks = new List<UniTask>();
-
-        foreach (var tile in _activeTiles)
+        var despawnTasks = _activeTiles.Select(tile => 
         {
             tile.OnClicked -= HandleTileClick;
-            despawnTasks.Add(tile.DeSpawnAnimationAsync());
-        }
-
+            return tile.DeSpawnAnimationAsync();
+        });
         await UniTask.WhenAll(despawnTasks);
         _activeTiles.Clear();
     }
@@ -232,7 +148,6 @@ public class GameplayController : MonoBehaviour
     {
         _trayController.OnDefeat -= HandleDefeat;
         _trayController.OnMatched -= HandleMatch;
-
         _uiManager.OnRetryClicked -= HandleRetry;
         _uiManager.OnHomeClicked -= HandleReturnHome;
         _uiManager.OnNextLevelClicked -= HandleNextLevel;

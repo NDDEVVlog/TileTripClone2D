@@ -580,7 +580,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1353335020}
         m_TargetAssemblyTypeName: GameplayController, Assembly-CSharp
-        m_MethodName: ReturnHomeScene
+        m_MethodName: HandleExitToHome
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1634,6 +1634,9 @@ MonoBehaviour:
   - Key: Tile
     Prefab: {fileID: 6761440655787265209, guid: 053bd9f2bf3c9c3458800648bbf66c54, type: 3}
     PrewarmCount: 60
+  - Key: MatchEffect
+    Prefab: {fileID: 9100837480726057851, guid: 2c84326a0e7e0934ca9bd21508f00ee3, type: 3}
+    PrewarmCount: 10
 --- !u!4 &1312195551
 Transform:
   m_ObjectHideFlags: 0
@@ -1694,7 +1697,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrayController
   _gridSlotPrefab: {fileID: 4930460569389616698, guid: 044f849b008243a488456990b62b3b79, type: 3}
-  iconSize: 1
   _startPoint: {fileID: 1320571631}
   _spacing: 1.2
   _animationOffset: 1.5
