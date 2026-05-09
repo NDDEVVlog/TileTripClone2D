@@ -25,9 +25,26 @@ public static class ProgressService
 
     public static void UnlockNextLevel()
     {
-        if (CurrentLevelIndex >= UnlockedLevel)
+        int nextLevel = CurrentLevelIndex + 1;
+        if (nextLevel > UnlockedLevel)
         {
-            UnlockedLevel = CurrentLevelIndex + 1;
+            UnlockedLevel = nextLevel;
         }
+    }
+
+    public static void MoveToNextLevel()
+    {
+        CurrentLevelIndex++;
+        
+        if (Database != null && CurrentLevelIndex >= Database.Levels.Length)
+        {
+            CurrentLevelIndex = 0; 
+        }
+    }
+
+    public static bool HasNextLevel()
+    {
+        if (Database == null) return false;
+        return CurrentLevelIndex < Database.Levels.Length - 1;
     }
 }

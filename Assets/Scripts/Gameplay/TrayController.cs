@@ -8,7 +8,6 @@ using DG.Tweening;
 public class TrayController : MonoBehaviour
 {   
     [SerializeField] private GameObject _gridSlotPrefab;
-    [SerializeField] private int iconSize;
     [SerializeField] private Transform _startPoint;
     [SerializeField] private float _spacing = 1.2f;
     [SerializeField] private float _animationOffset = 1.5f;
@@ -169,4 +168,4 @@ public class TrayController : MonoBehaviour
             OnMatched?.Invoke();
         }
     }
-}   
+}

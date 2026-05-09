@@ -14,8 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   RackCapacity: 7
   LayoutCoordinates:
-  - Position: {x: -0, y: -0}
-    Layer: 0
   - Position: {x: 1, y: -0}
     Layer: 0
   - Position: {x: -1, y: 0}
@@ -74,6 +72,8 @@ MonoBehaviour:
     Layer: 1
   - Position: {x: -0, y: 0}
     Layer: 1
+  - Position: {x: -0, y: 0}
+    Layer: 2
   AllowedIconIds:
   - 1
   - 2

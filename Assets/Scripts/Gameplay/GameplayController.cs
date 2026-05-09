@@ -3,22 +3,21 @@ using UnityEngine;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using UnityEngine.SceneManagement;
-using UnityEngine.Events;
 
 public class GameplayController : MonoBehaviour
 {
     [SerializeField] private ObjectPool _pool;
     [SerializeField] private TrayController _trayController;
     [SerializeField] private ComboManager _comboManager;
+    [SerializeField] private GameUIManager _uiManager;
     [SerializeField] private Transform _boardContainer;
     [SerializeField] private Sprite[] _iconSprites;
+    
     [Space]
     [SerializeField] private AudioClip _tapSfx;
     [SerializeField] private AudioClip _matchSfx;
     [SerializeField] private AudioClip _winSfx;
     [SerializeField] private AudioClip _loseSfx;
-
-    public UnityEvent OnLevelComplete;
 
     private LevelData _currentLevelData;
     private readonly HashSet<TileView> _activeTiles = new();
@@ -26,23 +25,31 @@ public class GameplayController : MonoBehaviour
 
     private void Start()
     {
+        BindEvents();
         InitializeGameSequenceAsync().Forget();
+    }
+
+    private void BindEvents()
+    {
+        _trayController.OnDefeat += HandleDefeat;
+        _trayController.OnMatched += HandleMatch;
+
+        _uiManager.OnRetryClicked += HandleRetry;
+        _uiManager.OnHomeClicked += HandleReturnHome;
+        _uiManager.OnNextLevelClicked += HandleNextLevel;
     }
 
     private async UniTaskVoid InitializeGameSequenceAsync()
     {
         _currentLevelData = ProgressService.GetCurrentLevelData();
         if (_currentLevelData == null)
-        {
+        {   
             SceneManager.LoadScene(GameConstants.SCENE_HOME);
             return;
         }
         
         _pool.Initialize();
         _trayController.Initialize(_currentLevelData.RackCapacity);
-        
-        _trayController.OnDefeat += HandleDefeat;
-        _trayController.OnMatched += HandleMatch;
 
         await _trayController.SpawnGridAsync();
         await GenerateBoardAsync();
@@ -85,43 +92,6 @@ public class GameplayController : MonoBehaviour
         _isGameActive = true;
     }
 
-    public void ReturnHomeScene()
-    {
-        ReturnHomeSequenceAsync().Forget();
-    }
-
-    private async UniTaskVoid ReturnHomeSequenceAsync()
-    {
-        _isGameActive = false;
-        await ClearBoardAsync();
-        await _trayController.DespawnGridAsync();
-        SceneManager.LoadScene(GameConstants.SCENE_HOME);
-    }
-
-    private async UniTask ClearBoardAsync()
-    {
-        var groupedByLayer = _activeTiles
-            .GroupBy(t => t.Layer)
-            .OrderByDescending(g => g.Key)
-            .ToList();
-
-        foreach (var layerGroup in groupedByLayer)
-        {
-            var despawnTasks = new List<UniTask>();
-
-            foreach (var tile in layerGroup)
-            {
-                tile.OnClicked -= HandleTileClick;
-                despawnTasks.Add(tile.DeSpawnAnimationAsync());
-            }
-
-            await UniTask.WhenAll(despawnTasks);
-            await UniTask.Delay(100);
-        }
-        
-        _activeTiles.Clear();
-    }
-
     private void BuildDependencies(IReadOnlyList<TileView> tiles)
     {
         int count = tiles.Count;
@@ -156,10 +126,14 @@ public class GameplayController : MonoBehaviour
         {
             AudioService.Instance?.PlaySFX(_tapSfx);
             _comboManager?.HandleTap(tile.Id);
+            
             _activeTiles.Remove(tile);
             tile.DetachForTray();
 
-            if (_activeTiles.Count == 0) HandleVictory();
+            if (_activeTiles.Count == 0) 
+            {
+                HandleVictory();
+            }
         }
     }
 
@@ -172,26 +146,95 @@ public class GameplayController : MonoBehaviour
     private void HandleVictory()
     {
         _isGameActive = false;
+        //AudioService.Instance?.PlaySFX(_winSfx);
+        
         ProgressService.UnlockNextLevel();
-        EndGameSequenceAsync().Forget();
+        bool hasNext = ProgressService.HasNextLevel();
+        
+        ShowEndGamePanelAsync(true, hasNext).Forget();
     }
 
     private void HandleDefeat()
     {
         _isGameActive = false;
-        AudioService.Instance?.PlaySFX(_loseSfx);
-        EndGameSequenceAsync().Forget();
+        //AudioService.Instance?.PlaySFX(_loseSfx);
+        
+        ShowEndGamePanelAsync(false).Forget();
     }
 
-    private async UniTaskVoid EndGameSequenceAsync()
+    private async UniTaskVoid ShowEndGamePanelAsync(bool isVictory, bool hasNext = false)
     {
-        await UniTask.Delay(1500);
+        await UniTask.Delay(1000); 
+
+        if (isVictory)
+            await _uiManager.ShowWinPanelAsync(hasNext);
+        else
+            await _uiManager.ShowLosePanelAsync();
+    }
+
+    private void HandleRetry()
+    {
+        ResetGameSequenceAsync().Forget();
+    }
+
+    private async UniTaskVoid ResetGameSequenceAsync()
+    {
+        await _uiManager.HideAllPanelsAsync();
+        await ClearBoardAsync();
+        await _trayController.DespawnGridAsync();
+        
+        InitializeGameSequenceAsync().Forget();
+    }
+
+    private void HandleReturnHome()
+    {
         ReturnHomeSequenceAsync().Forget();
     }
-    
+
+    private void HandleNextLevel()
+    {
+        if (ProgressService.HasNextLevel())
+        {
+            ProgressService.MoveToNextLevel();
+            ResetGameSequenceAsync().Forget();
+        }
+        else
+        {
+            ReturnHomeSequenceAsync().Forget();
+        }
+    }
+
+    private async UniTaskVoid ReturnHomeSequenceAsync()
+    {
+        _isGameActive = false;
+        await _uiManager.HideAllPanelsAsync();
+        await ClearBoardAsync();
+        await _trayController.DespawnGridAsync();
+        
+        SceneManager.LoadScene(GameConstants.SCENE_HOME);
+    }
+
+    private async UniTask ClearBoardAsync()
+    {
+        var despawnTasks = new List<UniTask>();
+
+        foreach (var tile in _activeTiles)
+        {
+            tile.OnClicked -= HandleTileClick;
+            despawnTasks.Add(tile.DeSpawnAnimationAsync());
+        }
+
+        await UniTask.WhenAll(despawnTasks);
+        _activeTiles.Clear();
+    }
+
     private void OnDestroy()
     {
         _trayController.OnDefeat -= HandleDefeat;
         _trayController.OnMatched -= HandleMatch;
+
+        _uiManager.OnRetryClicked -= HandleRetry;
+        _uiManager.OnHomeClicked -= HandleReturnHome;
+        _uiManager.OnNextLevelClicked -= HandleNextLevel;
     }
 }
