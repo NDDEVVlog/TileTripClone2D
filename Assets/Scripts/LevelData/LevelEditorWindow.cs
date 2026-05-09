@@ -6,9 +6,11 @@ public class LevelEditorWindow : EditorWindow
 {
     private LevelData _currentLevel;
     private int _currentLayer = 0;
-    private float _snapStep = 0.5f; 
-    private readonly float _tileSize = 60f;
+    private float _snapStep = 0.5f;
+    private bool _isolateCurrentLayer = false;
     private Vector2 _scrollPosition;
+    
+    private readonly float _tileSize = 60f;
 
     [MenuItem("TileTrip/Level Editor")]
     public static void ShowWindow()
@@ -48,6 +50,9 @@ public class LevelEditorWindow : EditorWindow
         _currentLayer = EditorGUILayout.IntSlider(_currentLayer, 0, 20, GUILayout.Width(150));
         
         GUILayout.Space(10);
+        _isolateCurrentLayer = GUILayout.Toggle(_isolateCurrentLayer, "Isolate Layer", EditorStyles.toolbarButton, GUILayout.Width(90));
+
+        GUILayout.Space(10);
         GUILayout.Label("Snap Size:", GUILayout.Width(65));
         
         if (GUILayout.Button("1.0 (Full)", EditorStyles.toolbarButton)) _snapStep = 1f;
@@ -77,13 +82,12 @@ public class LevelEditorWindow : EditorWindow
         Vector2 centerOffset = workspaceRect.center;
 
         DrawGrid(workspaceRect, centerOffset);
-        DrawTiles(workspaceRect, centerOffset);
+        DrawTiles(centerOffset);
         HandleMouseEvents(workspaceRect, centerOffset);
     }
 
     private void DrawGrid(Rect workspaceRect, Vector2 center)
     {
-        // 1. Vẽ lưới mờ (Grid)
         Handles.color = new Color(1, 1, 1, 0.05f);
         float stepX = _tileSize * _snapStep;
         
@@ -93,56 +97,57 @@ public class LevelEditorWindow : EditorWindow
         for (float j = center.y % stepX; j < workspaceRect.height; j += stepX)
             Handles.DrawLine(new Vector2(0, j), new Vector2(workspaceRect.width, j));
 
-        // 2. Vẽ 2 trục toạ độ chính đi qua tâm (0,0)
-        
-        // Trục X (Ngang) - Màu Đỏ
         Handles.color = new Color(1f, 0.3f, 0.3f, 0.6f);
         Handles.DrawAAPolyLine(3f, new Vector2(0, center.y), new Vector2(workspaceRect.width, center.y));
 
-        // Trục Y (Dọc) - Màu Xanh Lá
         Handles.color = new Color(0.3f, 1f, 0.3f, 0.6f);
         Handles.DrawAAPolyLine(3f, new Vector2(center.x, 0), new Vector2(center.x, workspaceRect.height));
 
-        // 3. Vẽ tâm điểm và Text (0,0)
         Handles.color = Color.yellow;
-        Handles.DrawSolidDisc(center, Vector3.forward, 4f); // Chấm tròn ngay tâm
+        Handles.DrawSolidDisc(center, Vector3.forward, 4f);
 
         GUIStyle originStyle = new GUIStyle(EditorStyles.boldLabel);
         originStyle.normal.textColor = Color.yellow;
         GUI.Label(new Rect(center.x + 5, center.y + 5, 50, 20), "(0, 0)", originStyle);
     }
 
-    private void DrawTiles(Rect workspaceRect, Vector2 centerOffset)
+    private void DrawTiles(Vector2 centerOffset)
     {
         var sortedTiles = _currentLevel.LayoutCoordinates.OrderBy(t => t.Layer).ToList();
 
         foreach (var coord in sortedTiles)
         {
-            Vector2 drawPos = centerOffset + new Vector2(coord.Position.x * _tileSize, -coord.Position.y * _tileSize);
-            Rect tileRect = new Rect(drawPos.x - _tileSize / 2, drawPos.y - _tileSize / 2, _tileSize, _tileSize);
+            if (_isolateCurrentLayer && coord.Layer != _currentLayer) continue;
 
-            bool isCurrentLayer = coord.Layer == _currentLayer;
-            float brightness = 0.4f + (coord.Layer * 0.05f);
-            
-            Color tileColor = isCurrentLayer 
-                ? new Color(0.3f, 0.8f, 0.3f, 1f) 
-                : new Color(brightness, brightness, brightness, 1f);
-
-            EditorGUI.DrawRect(new Rect(tileRect.x + 4, tileRect.y + 4, tileRect.width, tileRect.height), new Color(0, 0, 0, 0.4f));
-
-            EditorGUI.DrawRect(tileRect, tileColor);
-
-            Handles.color = isCurrentLayer ? Color.white : Color.black;
-            Handles.DrawWireCube(tileRect.center, tileRect.size);
-
-            Handles.color = isCurrentLayer ? Color.red : new Color(0, 0, 0, 0.5f);
-            Handles.DrawLine(tileRect.center + Vector2.up * 4, tileRect.center + Vector2.down * 4);
-            Handles.DrawLine(tileRect.center + Vector2.left * 4, tileRect.center + Vector2.right * 4);
-
-            GUIStyle style = new GUIStyle(EditorStyles.boldLabel) { alignment = TextAnchor.UpperLeft };
-            style.normal.textColor = isCurrentLayer ? Color.white : Color.black;
-            GUI.Label(new Rect(tileRect.x + 2, tileRect.y + 2, 20, 20), $"{coord.Layer}", style);
+            DrawSingleTile(coord, centerOffset);
         }
+    }
+
+    private void DrawSingleTile(TileCoordinate coord, Vector2 centerOffset)
+    {
+        Vector2 drawPos = centerOffset + new Vector2(coord.Position.x * _tileSize, -coord.Position.y * _tileSize);
+        Rect tileRect = new Rect(drawPos.x - _tileSize / 2, drawPos.y - _tileSize / 2, _tileSize, _tileSize);
+
+        bool isCurrentLayer = coord.Layer == _currentLayer;
+        float brightness = 0.4f + (coord.Layer * 0.05f);
+        
+        Color tileColor = isCurrentLayer 
+            ? new Color(0.3f, 0.8f, 0.3f, 1f) 
+            : new Color(brightness, brightness, brightness, 1f);
+
+        EditorGUI.DrawRect(new Rect(tileRect.x + 4, tileRect.y + 4, tileRect.width, tileRect.height), new Color(0, 0, 0, 0.4f));
+        EditorGUI.DrawRect(tileRect, tileColor);
+
+        Handles.color = isCurrentLayer ? Color.white : Color.black;
+        Handles.DrawWireCube(tileRect.center, tileRect.size);
+
+        Handles.color = isCurrentLayer ? Color.red : new Color(0, 0, 0, 0.5f);
+        Handles.DrawLine(tileRect.center + Vector2.up * 4, tileRect.center + Vector2.down * 4);
+        Handles.DrawLine(tileRect.center + Vector2.left * 4, tileRect.center + Vector2.right * 4);
+
+        GUIStyle style = new GUIStyle(EditorStyles.boldLabel) { alignment = TextAnchor.UpperLeft };
+        style.normal.textColor = isCurrentLayer ? Color.white : Color.black;
+        GUI.Label(new Rect(tileRect.x + 2, tileRect.y + 2, 20, 20), $"{coord.Layer}", style);
     }
 
     private void HandleMouseEvents(Rect workspaceRect, Vector2 centerOffset)
