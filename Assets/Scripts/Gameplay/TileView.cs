@@ -17,6 +17,7 @@ public class TileView : MonoBehaviour, IPointerClickHandler
     public bool IsClickable => _blockedBy.Count == 0;
 
     public event Action<TileView> OnClicked;
+    
     private Action<TileView> _onReturnToPool;
     private readonly HashSet<TileView> _blockedBy = new();
     private readonly HashSet<TileView> _blocking = new();
@@ -65,6 +66,7 @@ public class TileView : MonoBehaviour, IPointerClickHandler
 
     public async UniTask DeSpawnAnimationAsync()
     {
+        transform.DOKill();
         await transform.DOScale(Vector3.zero, GameConstants.ANIMATION_DURATION_FAST)
             .SetEase(Ease.InBack)
             .SetLink(gameObject)
@@ -121,7 +123,7 @@ public class TileView : MonoBehaviour, IPointerClickHandler
         _collider.enabled = IsClickable;
     }
 
-    void IPointerClickHandler.OnPointerClick(PointerEventData eventData)
+    public void OnPointerClick(PointerEventData eventData)
     {
         if (IsClickable && !_isInTray) 
         {
@@ -131,6 +133,7 @@ public class TileView : MonoBehaviour, IPointerClickHandler
 
     public async UniTask MoveToTrayAsync(Vector2 targetPosition)
     {
+        transform.DOKill(); 
         await transform.DOMove(targetPosition, GameConstants.ANIMATION_DURATION_NORMAL)
             .SetEase(Ease.OutQuad)
             .SetLink(gameObject)
@@ -139,6 +142,8 @@ public class TileView : MonoBehaviour, IPointerClickHandler
 
     public async UniTask ExecuteMergeAnimationAsync()
     {
+        transform.DOKill();
+        
         await transform.DOMove(transform.position + Vector3.up * 0.5f, GameConstants.ANIMATION_DURATION_NORMAL)
             .SetEase(Ease.InQuad)
             .SetLink(gameObject)

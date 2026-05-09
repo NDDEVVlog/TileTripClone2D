@@ -608,7 +608,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 536.18}
+  m_AnchoredPosition: {x: 0, y: 579}
   m_SizeDelta: {x: 603.53, y: 145.63}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &912210146
@@ -901,7 +901,7 @@ Transform:
   m_GameObject: {fileID: 1320571629}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -3, y: 5, z: 0.66}
+  m_LocalPosition: {x: -3.59, y: 5, z: 0.66}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -919,8 +919,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00a8ac26aaed07945b2ee284b04d5069, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TrayController
+  _gridSlotPrefab: {fileID: 4930460569389616698, guid: 044f849b008243a488456990b62b3b79, type: 3}
+  iconSize: 1
   _startPoint: {fileID: 1320571631}
   _spacing: 1.2
+  _animationOffset: 1.5
+  _animationDuration: 0.4
 --- !u!1 &1327536668
 GameObject:
   m_ObjectHideFlags: 0
